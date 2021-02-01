@@ -66,14 +66,14 @@ html_theme = 'alabaster'
 # so a file named default.css will overwrite the builtin default.css.
 html_static_path = ['_static']
 
-html_sidebars = {
-    '' [
-        'about.html',
-        'navigation.html',
-        'relations.html',
-        'searchbox.html',
-    ]
- }
+# html_sidebars = {
+#     '' [
+#         'about.html',
+#         'navigation.html',
+#         'relations.html',
+#         'searchbox.html',
+#     ]
+#  }
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string
