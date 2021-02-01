@@ -82,7 +82,8 @@ html_static_path = ['_static']
 source_suffix = '.rst'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = 'source/index'
+# master_doc = 'index'
  
 # -- Options for HTMLHelp output ---------------------------------------------
 
