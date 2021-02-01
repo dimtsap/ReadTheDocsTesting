@@ -140,7 +140,7 @@ texinfo_documents = [
      author, 'aaaaa', 'One line description of project.',
      'Miscellaneous'),
 ]
-
+ 
 
 # -- Options for Epub output -------------------------------------------------
 
