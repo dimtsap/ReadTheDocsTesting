@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sensitivity &#8212; aaaaa v1.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="sensitivity">
+<span id="sensitivity-doc"></span><h1>Sensitivity<a class="headerlink" href="#sensitivity" title="Permalink to this headline">¶</a></h1>
+<p>Sensitivity analysis comprises techniques focused on determining how the variations of input variables <span class="math notranslate nohighlight">\(X=\left[ X_{1}, X_{2},…,X_{d} \right]\)</span> of a mathematical model influence the response value <span class="math notranslate nohighlight">\(Y=h(X)\)</span>.</p>
+<div class="section" id="morris-method">
+<h2>Morris method<a class="headerlink" href="#morris-method" title="Permalink to this headline">¶</a></h2>
+<p>The Morris method is a so-called one-at-a-time (OAT) screening method that is known to achieve a good trade-off between accuracy and efficiency, and can serve to identify the few important factors in models with many factors. The method is based on calculating for each input a number of incremental ratios, called Elementary Effects (EE), from which basic statistics are computed to derive sensitivity information <a class="footnote-reference brackets" href="#id2" id="id1">1</a>.</p>
+<p>For each input <span class="math notranslate nohighlight">\(X_{k}\)</span>, the elementary effect is computed as:</p>
+<div class="math notranslate nohighlight">
+\[EE_{k} = \frac{Y(X_{1}, ..., X_{k}+\Delta, ..., X_{d})-Y(X_{1}, ..., X_{k}, ..., X_{d})}{\Delta}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Delta\)</span> is chosen so that <span class="math notranslate nohighlight">\(X_{k}+\Delta\)</span> is still in the allowable domain for every dimension k.</p>
+<p>The key idea of the original Morris method (current implementation) is to initiate trajectories from various “nominal” points <span class="math notranslate nohighlight">\(X\)</span> randomly selected over the grid and then gradually advancing one <span class="math notranslate nohighlight">\(\Delta\)</span> at a time between each model evaluation (one at a time OAT design), along a different dimension of the parameter space selected randomly (see an example of 5 trajectories in a 2D space on the left plot of the figure below). For <span class="math notranslate nohighlight">\(r\)</span> trajectories (usually set <span class="math notranslate nohighlight">\(r\)</span> between 5 and 50), the number of simulations required is <span class="math notranslate nohighlight">\(r (d+1)\)</span>.</p>
+<p>The following sensitivity indices are computed from the elementary effects:</p>
+<div class="math notranslate nohighlight">
+\[\mu_{k}^{\star} = \frac{1}{r} \sum_{i=1}^{r} \vert EE_{k}^{r} \vert\]</div>
+<div class="math notranslate nohighlight">
+\[\sigma_{k} = \sqrt{ \frac{1}{r} \sum_{i=1}^{r} \left( EE_{k}^{r} - \mu_{k} \right)^{2}}\]</div>
+<p>These indices allow differentiation between three groups of inputs (see example in the right plot on the figure below):</p>
+<ul class="simple">
+<li><p>Parameters with non-influential effects, i.e., the parameters that have relatively small values of both <span class="math notranslate nohighlight">\(\mu_{k}^{\star}\)</span> and <span class="math notranslate nohighlight">\(\sigma_{k}\)</span>.</p></li>
+<li><p>Parameters with linear and/or additive effects, i.e., the parameters that have a relatively large value of <span class="math notranslate nohighlight">\(\mu_{k}^{\star}\)</span> and relatively small value of <span class="math notranslate nohighlight">\(\sigma_{k}\)</span> (the magnitude of the effect <span class="math notranslate nohighlight">\(\mu_{k}^{\star}\)</span> is consistently large, regardless of the other parameter values, i.e., no interaction).</p></li>
+<li><p>Parameters with nonlinear and/or interaction effects, i.e., the parameters that have a relatively small value of <span class="math notranslate nohighlight">\(\mu_{k}^{\star}\)</span> and a relatively large value of <span class="math notranslate nohighlight">\(\sigma_{k}\)</span> (large value of <span class="math notranslate nohighlight">\(\sigma_{k}\)</span> indicates that the effect can be large or small depending on the other values of parameters at which the model is evaluated, indicates potential interaction between parameters).</p></li>
+</ul>
+<img alt="_images/morris_indices.pdf" class="align-left" src="_images/morris_indices.pdf" />
+<div class="section" id="morris-class-description">
+<h3>Morris Class Description<a class="headerlink" href="#morris-class-description" title="Permalink to this headline">¶</a></h3>
+<p><strong>Note: subclassing the Morris class</strong></p>
+<p>The user can subclass the Morris class to implement algorithms with better sampling of the trajectories for instance. In order to do so, the user can simply overwrite the <cite>sample_trajectories</cite> method, which should take as inputs the number of trajectories <cite>ntrajectories</cite> and any other user-defined input (transferred from the <cite>run</cite> method as kwargs).</p>
+<dl class="footnote brackets">
+<dt class="label" id="id2"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
+<dd><p>Campolongo, F., Cariboni, J., Saltelli, A., “An effective screening design for sensitivity analysis of large models”, Environmental Modelling &amp; Software 22 (2007) 1509-1518.</p>
+</dd>
+</dl>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">aaaaa</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation_doc.html">Introduction</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, aaaa.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/sensitivity_doc.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

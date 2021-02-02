@@ -1,0 +1,326 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transformations &#8212; aaaaa v1.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-UQpy.Transformations">
+<span id="transformations"></span><span id="transformations-doc"></span><h1>Transformations<a class="headerlink" href="#module-UQpy.Transformations" title="Permalink to this headline">¶</a></h1>
+<p>This module contains functionality for all the transformations supported in UQpy.</p>
+<div class="section" id="nataf">
+<h2>Nataf<a class="headerlink" href="#nataf" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Nataf</span></code> is   a   class   for   transforming   random   variables   using   the   <cite>Nataf</cite> transformation  and  calculating  the  correlation  distortion.    According  to  the Nataf transformation theory (<a class="footnote-reference brackets" href="#id4" id="id1">1</a>, <a class="footnote-reference brackets" href="#id5" id="id2">2</a>), a <cite>n</cite>-dimensional dependent random vector <span class="math notranslate nohighlight">\(\textbf{X}=[X_1,...,X_n]\)</span> for which the  marginal cumulative distributions <span class="math notranslate nohighlight">\(F_i(x_i)\)</span>  and the correlattion matrix <span class="math notranslate nohighlight">\(\textbf{C}_x=[\xi_{ij}]\)</span> are known, can be transformed (component-wise) to standard normal random vector <span class="math notranslate nohighlight">\(\textbf{z}=[Z_1,...,Z_n]\)</span> with correlation matrix <span class="math notranslate nohighlight">\(\textbf{C}_z=[\rho_{ij}]\)</span> through the transformation:</p>
+<div class="math notranslate nohighlight">
+\[Z_{i}=\Phi^{-1}(F_i(X_{i}))\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Phi(\cdot)\)</span> is the standard normal cumulative distribution function.</p>
+<p>This transformation causes a <cite>correlation distortion</cite>; the correlation coefficient between the standard normal variables <span class="math notranslate nohighlight">\(Z_i\)</span> and <span class="math notranslate nohighlight">\(Z_j\)</span>, denoted <span class="math notranslate nohighlight">\(\rho_{ij}\)</span>, is not equal to its counterpart in the parameter space (<span class="math notranslate nohighlight">\(\rho_{ij} \neq \xi_{ij}\)</span>).</p>
+<p>If the Gaussian correlation <span class="math notranslate nohighlight">\(\rho_{ij}\)</span> is know, the non-Gaussian correlation <span class="math notranslate nohighlight">\(\xi_{ij}\)</span> can be determined through the following integral equation:</p>
+<div class="math notranslate nohighlight">
+\[\xi_{ij} =\dfrac{1}{\sigma_{X_i}\sigma_{X_j}}\int_{-\infty}^{\infty}\int_{-\infty}^{\infty}\left(X_i-\mu_{X_i}\right)\left(X_j-\mu_{X_j}\right)\phi_2(Z_i,Z_j;\rho_{ij})dZ_idZ_j\]</div>
+<p>where <span class="math notranslate nohighlight">\(X_i =F_i^{-1}(\Phi(Z_{i}))\)</span> and <span class="math notranslate nohighlight">\(\phi_2(\cdot)\)</span> is the bivariate standard normal probability density function. The integration is directly evaluated using a quadratic two-dimensional Gauss-Legendre integration. However, in the case where the non-Gaussian correlation is known <span class="math notranslate nohighlight">\(\xi_{ij}\)</span>, the integral above cannot be inverted to solve for the Gaussian correlation <span class="math notranslate nohighlight">\(\rho_{ij}\)</span>. In such case, iterative methods must be employed such as the Iterative Translation Approximation Method (ITAM) <a class="footnote-reference brackets" href="#id6" id="id3">3</a>, used in <code class="docutils literal notranslate"><span class="pre">UQpy</span></code>.</p>
+<p>The Jacobian of the transformation can be also estimated with the <code class="docutils literal notranslate"><span class="pre">Nataf</span></code> class as:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{J_{xz}} = \dfrac{\partial\mathbf{x}}{\partial\mathbf{z}} =\left[\dfrac{\phi(Z_i)}{f_i(X_i)}\right]\mathbf{H}.\]</div>
+<p>where <span class="math notranslate nohighlight">\(\textbf{H}\)</span> is the lower diagonal matrix resulting from the Cholesky decomposition of the correlation  matrix
+(<span class="math notranslate nohighlight">\(\mathbf{C_Z}\)</span>).</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">Nataf</span></code> class also allows for the inverse of the Nataf transformation, i.e. transforming a vector of standard normal vector <span class="math notranslate nohighlight">\(\textbf{z}=[Z_1,...,Z_n]\)</span> to random variables with prescribed marginal cumulative distributions and correlation matrix <span class="math notranslate nohighlight">\(\textbf{C}_x=[\rho_{ij}]\)</span> according to:</p>
+<div class="math notranslate nohighlight">
+\[X_{i}=F_i^{-1}(\Phi(Z_{i}))\]</div>
+<div class="section" id="nataf-class-descriptions">
+<h3>Nataf Class Descriptions<a class="headerlink" href="#nataf-class-descriptions" title="Permalink to this headline">¶</a></h3>
+<dl class="py class">
+<dt id="UQpy.Transformations.Nataf">
+<em class="property">class </em><code class="sig-prename descclassname">UQpy.Transformations.</code><code class="sig-name descname">Nataf</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_samples</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dimension</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">corr</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dist_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dist_params</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">beta</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">itam_error1</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">itam_error2</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Transformations.html#Nataf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Transformations.Nataf" title="Permalink to this definition">¶</a></dt>
+<dd><dl>
+<dt>Description:</dt><dd><p>A class to perform the Nataf transformation of samples from a user-defined distribution to N(0, 1).</p>
+</dd>
+<dt>Input:</dt><dd><dl class="field-list">
+<dt class="field-odd">param input_samples</dt>
+<dd class="field-odd"><p>An object of type SampleMethods, ndarray and InvNataf</p>
+</dd>
+<dt class="field-even">type input_samples</dt>
+<dd class="field-even"><p>object</p>
+</dd>
+<dt class="field-odd">param dist_name</dt>
+<dd class="field-odd"><p>A list containing the names of the distributions of the random variables.
+Distribution names must match those in the Distributions module.
+If the distribution does not match one from the Distributions module, the user must provide
+custom_dist.py.
+The length of the string must be 1 (if all distributions are the same) or equal to dimension</p>
+</dd>
+<dt class="field-even">type dist_name</dt>
+<dd class="field-even"><p>string list</p>
+</dd>
+<dt class="field-odd">param dist_params</dt>
+<dd class="field-odd"><p>Parameters of the distribution
+Parameters for each random variable are defined as ndarrays
+Each item in the list, dist_params[i], specifies the parameters for the corresponding distribution,</p>
+<blockquote>
+<div><p>dist[i]</p>
+</div></blockquote>
+</dd>
+<dt class="field-even">type dist_params</dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>param: distribution: An object list containing the distributions of the random variables.</dt><dd><p>Each item in the list is an object of the Distribution class (see Distributions.py).
+The list has length equal to dimension.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">type distribution</dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+<p>:param corr The correlation matrix of the random variables in the parameter space.
+:type corr: ndarray</p>
+<dl class="field-list simple">
+<dt class="field-odd">param itam_error1</dt>
+<dd class="field-odd"><p></p></dd>
+<dt class="field-even">type itam_error1</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+<dt class="field-odd">param itam_error2</dt>
+<dd class="field-odd"><p></p></dd>
+<dt class="field-even">type itam_error1</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+<dt class="field-odd">param beta</dt>
+<dd class="field-odd"><p></p></dd>
+<dt class="field-even">type itam_error1</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>Nataf.corr: The distorted correlation matrix of the random variables in the standard space;</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>Nataf.corr: ndarray</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>Nataf.samplesN01: An array of N(0,1) samples;</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>Nataf.corr: ndarray</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>Nataf.samples: An array of samples following the normal distribution.</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>Nataf.corr: ndarray</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>Nataf.jacobian: An array containing the Jacobian of the transformation.</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>Nataf.jacobian: ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="correlate">
+<h2>Correlate<a class="headerlink" href="#correlate" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Correlate</span></code> is a class to induce correlation to an uncorrelated standard normal vector <span class="math notranslate nohighlight">\(\textbf{u}=[U_1,...,U_n]\)</span>, given the correlation matrix <span class="math notranslate nohighlight">\(\textbf{C}_z=[\rho_{ij}]\)</span>. The correlated standard normal vector <span class="math notranslate nohighlight">\(\textbf{z}=[Z_1,...,Z_n]\)</span> can be calculated as:</p>
+<div class="math notranslate nohighlight">
+\[\mathbf{z}^\intercal = \mathbf{H}\mathbf{u}^\intercal\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{H}\)</span> is the lower triangular matrix resulting from the Cholesky decomposition of the correlation matrix, i.e. <span class="math notranslate nohighlight">\(\mathbf{C_z}=\mathbf{H}\mathbf{H}^\intercal\)</span>.</p>
+<div class="section" id="correlate-class-descriptions">
+<h3>Correlate Class Descriptions<a class="headerlink" href="#correlate-class-descriptions" title="Permalink to this headline">¶</a></h3>
+<dl class="py class">
+<dt id="UQpy.Transformations.Correlate">
+<em class="property">class </em><code class="sig-prename descclassname">UQpy.Transformations.</code><code class="sig-name descname">Correlate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_samples</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">corr_norm</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dimension</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Transformations.html#Correlate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Transformations.Correlate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description:
+A class to correlate standard normal samples ~ N(0, 1) given a correlation matrix.</p>
+<p>Input:
+:param input_samples: An object of a SampleMethods class or an array of standard normal samples ~ N(0, 1).
+:type input_samples: object or ndarray</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>corr_norm</strong> (<em>ndarray</em>) – The correlation matrix of the random variables in the standard normal space.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>param: distribution: An object list containing the distributions of the random variables.</dt><dd><p>Each item in the list is an object of the Distribution class (see Distributions.py).
+The list has length equal to dimension.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+</dl>
+<p>Output:
+:return: Correlate.samples: Set of correlated normal samples.
+:rtype: Correlate.samples: ndarray</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="decorrelate">
+<h2>Decorrelate<a class="headerlink" href="#decorrelate" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Decorrelate</span></code> is a class to remove correlation from an correlated standard normal vector <span class="math notranslate nohighlight">\(\textbf{z}=[Z_1,...,Z_n]\)</span> with correlation matrix <span class="math notranslate nohighlight">\(\textbf{C}_z=[\rho_{ij}]\)</span>. The uncorrelated standard normal vector <span class="math notranslate nohighlight">\(\textbf{u}=[U_1,...,U_n]\)</span> can be calculated as:</p>
+<div class="math notranslate nohighlight">
+\[\textbf{u}^\intercal = \mathbf{H}^{-1} \mathbf{z}^\intercal\]</div>
+<div class="section" id="decorrelate-class-descriptions">
+<h3>Decorrelate Class Descriptions<a class="headerlink" href="#decorrelate-class-descriptions" title="Permalink to this headline">¶</a></h3>
+<dl class="py class">
+<dt id="UQpy.Transformations.Decorrelate">
+<em class="property">class </em><code class="sig-prename descclassname">UQpy.Transformations.</code><code class="sig-name descname">Decorrelate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_samples</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">corr_norm</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dimension</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Transformations.html#Decorrelate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Transformations.Decorrelate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description:</p>
+<blockquote>
+<div><p>A class to decorrelate already correlated normal samples given their correlation matrix.</p>
+</div></blockquote>
+<dl>
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param input_samples</dt>
+<dd class="field-odd"><p>An object of type Correlate or an array of correlated N(0,1) samples</p>
+</dd>
+<dt class="field-even">type input_samples</dt>
+<dd class="field-even"><p>object or ndarray</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>param: distribution: An object list containing the distributions of the random variables.</dt><dd><p>Each item in the list is an object of the Distribution class (see Distributions.py).
+The list has length equal to dimension.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">type distribution</dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+<dt class="field-even">param corr_norm</dt>
+<dd class="field-even"><p>The correlation matrix of the random variables in the standard normal space</p>
+</dd>
+<dt class="field-odd">type corr_norm</dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>Decorrelate.samples: Set of uncorrelated normal samples.</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>Decorrelate.samples: ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<p><strong>References:</strong></p>
+<dl class="footnote brackets">
+<dt class="label" id="id4"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
+<dd><p>A. Nataf, Determination des distributions dont les marges sont donnees, C. R. Acad. Sci.
+vol. 225, pp. 42-43, Paris, 1962.</p>
+</dd>
+<dt class="label" id="id5"><span class="brackets"><a class="fn-backref" href="#id2">2</a></span></dt>
+<dd><p>R. Lebrun and A. Dutfoy, An innovating analysis of the Nataf transformation from the copula viewpoint,
+Prob. Eng. Mech.,  vol. 24, pp. 312-320, 2009.</p>
+</dd>
+<dt class="label" id="id6"><span class="brackets"><a class="fn-backref" href="#id3">3</a></span></dt>
+<dd><p>Kim, H. and Shields, M.D. (2015). “Modeling strongly non-Gaussian non-stationary stochastic processes using the Iterative Translation Approximation Method and Karhunen-Loeve Expansion,” Computers and Structures. 161: 31-42.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">aaaaa</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation_doc.html">Introduction</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, aaaa.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/transformations_doc.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

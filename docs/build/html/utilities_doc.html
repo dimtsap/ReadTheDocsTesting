@@ -1,0 +1,811 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Utilities &#8212; aaaaa v1.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="utilities">
+<span id="utilities-doc"></span><h1>Utilities<a class="headerlink" href="#utilities" title="Permalink to this headline">¶</a></h1>
+<p>A module that contains miscalleneous methods used in various modules of <code class="docutils literal notranslate"><span class="pre">UQpy</span></code>.</p>
+<span class="target" id="module-UQpy.Utilities"></span><dl class="py function">
+<dt id="UQpy.Utilities.R_to_S">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">R_to_S</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">R</span></em>, <em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">t</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#R_to_S"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.R_to_S" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description: A function to transform the autocorrelation function to a power spectrum</p>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param r</dt>
+<dd class="field-odd"><p>Autocorrelation function of the signal</p>
+</dd>
+<dt class="field-even">param w</dt>
+<dd class="field-even"><p>Array of frequency discretizations</p>
+</dd>
+<dt class="field-odd">param t</dt>
+<dd class="field-odd"><p>Array of time discretizations</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return s</dt>
+<dd class="field-odd"><p>Power Spectrum</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.R_to_r">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">R_to_r</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">R</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#R_to_r"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.R_to_r" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description: A function to scale down the autocorrelation function to a correlation function</p>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param R</dt>
+<dd class="field-odd"><p>Autocorrelation function of the signal</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return r</dt>
+<dd class="field-odd"><p>correlation function of the signal</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.S_to_R">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">S_to_R</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">S</span></em>, <em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">t</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#S_to_R"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.S_to_R" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description:</p>
+<blockquote>
+<div><p>A function to transform the power spectrum to an autocorrelation function</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param s</dt>
+<dd class="field-odd"><p>Power Spectrum of the signal</p>
+</dd>
+<dt class="field-even">param w</dt>
+<dd class="field-even"><p>Array of frequency discretisations</p>
+</dd>
+<dt class="field-odd">param t</dt>
+<dd class="field-odd"><p>Array of time discretisations</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return r</dt>
+<dd class="field-odd"><p>Autocorrelation function</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.bi_variate_normal_pdf">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">bi_variate_normal_pdf</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x1</span></em>, <em class="sig-param"><span class="n">x2</span></em>, <em class="sig-param"><span class="n">rho</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#bi_variate_normal_pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.bi_variate_normal_pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description:</p>
+<blockquote>
+<div><p>A function which evaluates the values of the bi-variate normal probability distribution function.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param x1</dt>
+<dd class="field-odd"><p>value 1</p>
+</dd>
+<dt class="field-even">type x1</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">param x2</dt>
+<dd class="field-odd"><p>value 2</p>
+</dd>
+<dt class="field-even">type x2</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">param rho</dt>
+<dd class="field-odd"><p>correlation between x1, x2</p>
+</dd>
+<dt class="field-even">type rho</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>Output:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.correlation_distortion">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">correlation_distortion</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">marginal</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">rho_norm</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#correlation_distortion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.correlation_distortion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description:</p>
+<blockquote>
+<div><p>A function to solve the double integral equation in order to evaluate the modified correlation
+matrix in the standard normal space given the correlation matrix in the original space. This is achieved
+by a quadratic two-dimensional Gauss-Legendre integration.
+This function is a part of the ERADIST code that can be found in:
+<a class="reference external" href="https://www.era.bgu.tum.de/en/software/">https://www.era.bgu.tum.de/en/software/</a></p>
+</div></blockquote>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param marginal</dt>
+<dd class="field-odd"><p>marginal distributions</p>
+</dd>
+<dt class="field-even">type marginal</dt>
+<dd class="field-even"><p>list</p>
+</dd>
+<dt class="field-odd">param params</dt>
+<dd class="field-odd"><p>marginal distribution parameters.</p>
+</dd>
+<dt class="field-even">type params</dt>
+<dd class="field-even"><p>list</p>
+</dd>
+<dt class="field-odd">param rho_norm</dt>
+<dd class="field-odd"><p>Correlation at standard normal space.</p>
+</dd>
+<dt class="field-even">type rho_norm</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return rho</dt>
+<dd class="field-odd"><p>Distorted correlation</p>
+</dd>
+<dt class="field-even">rtype rho</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.diagnostics">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">diagnostics</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sampling_method</span></em>, <em class="sig-param"><span class="n">sampling_outputs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">samples</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">weights</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">figsize</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">eps_ESS</span><span class="o">=</span><span class="default_value">0.05</span></em>, <em class="sig-param"><span class="n">alpha_ESS</span><span class="o">=</span><span class="default_value">0.05</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#diagnostics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.diagnostics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description: A function to estimate the gradients (1st, 2nd, mixed) of a function using finite differences</p>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param sampling_method</dt>
+<dd class="field-odd"><p>sampling method used to generate samples</p>
+</dd>
+<dt class="field-even">type sampling_method</dt>
+<dd class="field-even"><p>str, ‘MCMC’ or ‘IS’</p>
+</dd>
+<dt class="field-odd">param sampling_outputs</dt>
+<dd class="field-odd"><p>output object of a sampling method</p>
+</dd>
+<dt class="field-even">type sampling_outputs</dt>
+<dd class="field-even"><p>object of class MCMC or IS</p>
+</dd>
+<dt class="field-odd">param samples</dt>
+<dd class="field-odd"><p>output samples of a sampling method (alternative to giving sampling_outputs for MCMC)</p>
+</dd>
+<dt class="field-even">type samples</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">param weights</dt>
+<dd class="field-odd"><p>output weights of IS (alternative to giving sampling_outputs for IS)</p>
+</dd>
+<dt class="field-even">type weights</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">param figsize</dt>
+<dd class="field-odd"><p>size of the figure for output plots</p>
+</dd>
+<dt class="field-even">type figsize</dt>
+<dd class="field-even"><p>tuple (width, height)</p>
+</dd>
+<dt class="field-odd">param eps_ESS</dt>
+<dd class="field-odd"><p>small number required to compute ESS when sampling_method=’MCMC’, see documentation</p>
+</dd>
+<dt class="field-even">type eps_ESS</dt>
+<dd class="field-even"><p>float in [0,1]</p>
+</dd>
+<dt class="field-odd">param alpha_ESS</dt>
+<dd class="field-odd"><p>small number required to compute ESS when sampling_method=’MCMC’, see documentation</p>
+</dd>
+<dt class="field-even">type alpha_ESS</dt>
+<dd class="field-even"><p>float in [0,1]</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><p>returns various diagnostics values/plots to evaluate importance sampling and MCMC sampling outputs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.estimate_psd">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">estimate_psd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">samples</span></em>, <em class="sig-param"><span class="n">nt</span></em>, <em class="sig-param"><span class="n">t</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#estimate_psd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.estimate_psd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description: A function to estimate the Power Spectrum of a stochastic process given an ensemble of samples</p>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param samples</dt>
+<dd class="field-odd"><p>Samples of the stochastic process</p>
+</dd>
+<dt class="field-even">param nt</dt>
+<dd class="field-even"><p>Number of time discretisations in the time domain</p>
+</dd>
+<dt class="field-odd">param t</dt>
+<dd class="field-odd"><p>Total simulation time</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>Power Spectrum</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.eval_hessian">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">eval_hessian</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dimension</span></em>, <em class="sig-param"><span class="n">mixed_der</span></em>, <em class="sig-param"><span class="n">der</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#eval_hessian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.eval_hessian" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the hessian matrix with finite differences
+Parameters:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.gradient">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">gradient</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sample</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dimension</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">eps</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">model_script</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">model_object_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">input_template</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">var_names</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">output_script</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">output_object_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ntasks</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">cores_per_task</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">nodes</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">resume</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">verbose</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">model_dir</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">cluster</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">order</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#gradient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.gradient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description: A function to estimate the gradients (1st, 2nd, mixed) of a function using finite differences</p>
+<dl>
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param sample</dt>
+<dd class="field-odd"><p>The sample values at which the gradient of the model will be evaluated. Samples can be</p>
+</dd>
+</dl>
+<p>passed directly as  an array or can be passed through the text file ‘UQpy_Samples.txt’.
+If passing samples via text file, set samples = None or do not set the samples input.
+:type sample: ndarray</p>
+<dl class="field-list simple">
+<dt class="field-odd">param order</dt>
+<dd class="field-odd"><p>The type of derivatives to calculate (1st order, second order, mixed).</p>
+</dd>
+<dt class="field-even">type order</dt>
+<dd class="field-even"><p>str</p>
+</dd>
+<dt class="field-odd">param dimension</dt>
+<dd class="field-odd"><p>Number of random variables.</p>
+</dd>
+<dt class="field-even">type dimension</dt>
+<dd class="field-even"><p>int</p>
+</dd>
+<dt class="field-odd">param eps</dt>
+<dd class="field-odd"><p>step for the finite difference.</p>
+</dd>
+<dt class="field-even">type eps</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+<dt class="field-odd">param model_script</dt>
+<dd class="field-odd"><p>The filename of the Python script which contains commands to execute the model</p>
+</dd>
+<dt class="field-even">param model_object_name</dt>
+<dd class="field-even"><p>The name of the function or class which executes the model</p>
+</dd>
+<dt class="field-odd">param input_template</dt>
+<dd class="field-odd"><p>The name of the template input file which will be used to generate input files for
+each run of the model. Refer documentation for more details.</p>
+</dd>
+<dt class="field-even">param var_names</dt>
+<dd class="field-even"><p>A list containing the names of the variables which are present in the template input
+files</p>
+</dd>
+<dt class="field-odd">param output_script</dt>
+<dd class="field-odd"><p>The filename of the Python script which contains the commands to process the output</p>
+</dd>
+<dt class="field-even">param output_object_name</dt>
+<dd class="field-even"><p>The name of the function or class which has the output values. If the object
+is a class named cls, the output must be saved as cls.qoi. If it a function, it should return the output
+quantity of interest</p>
+</dd>
+<dt class="field-odd">param ntasks</dt>
+<dd class="field-odd"><p>Number of tasks to be run in parallel. RunModel uses GNU parallel to execute models which
+require an input template</p>
+</dd>
+<dt class="field-even">param cores_per_task</dt>
+<dd class="field-even"><p>Number of cores to be used by each task</p>
+</dd>
+<dt class="field-odd">param nodes</dt>
+<dd class="field-odd"><p>On MARCC, each node has 24 cores_per_task. Specify the number of nodes if more than one
+node is required.</p>
+</dd>
+<dt class="field-even">param resume</dt>
+<dd class="field-even"><p>This option can be set to True if a parallel execution of a model with input template
+failed to finish running all jobs. GNU parallel will then run only the jobs which failed to execute.</p>
+</dd>
+<dt class="field-odd">param verbose</dt>
+<dd class="field-odd"><p>This option can be set to False if you do not want RunModel to print status messages to
+the screen during execution. It is True by default.</p>
+</dd>
+<dt class="field-even">param model_dir</dt>
+<dd class="field-even"><p>The directory  that contains the Python script which contains commands to execute the</p>
+</dd>
+</dl>
+<p>model</p>
+<dl class="field-list simple">
+<dt class="field-odd">param cluster</dt>
+<dd class="field-odd"><p>This option defines if we run the code into a cluster</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return du_dj</dt>
+<dd class="field-odd"><p>vector of first-order gradients</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">return d2u_dj</dt>
+<dd class="field-odd"><p>vector of second-order gradients</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">return d2u_dij</dt>
+<dd class="field-odd"><p>vector of mixed gradients</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.is_pd">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">is_pd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">b</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#is_pd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.is_pd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description:</p>
+<blockquote>
+<div><p>Returns true when input is positive-definite, via Cholesky decomposition.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param b</dt>
+<dd class="field-odd"><p>A general matrix</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>Output:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.itam">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">itam</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">marginal</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">corr</span></em>, <em class="sig-param"><span class="n">beta</span></em>, <em class="sig-param"><span class="n">thresh1</span></em>, <em class="sig-param"><span class="n">thresh2</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#itam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.itam" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description:</p>
+<blockquote>
+<div><p>A function to perform the  Iterative Translation Approximation Method;  an iterative scheme for
+upgrading the Gaussian power spectral density function.
+[1] Shields M, Deodatis G, Bocchini P. A simple and efficient methodology to approximate a general
+non-Gaussian  stochastic process by a translation process. Probab Eng Mech 2011;26:511–9.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param marginal</dt>
+<dd class="field-odd"><p>marginal distributions</p>
+</dd>
+<dt class="field-even">type marginal</dt>
+<dd class="field-even"><p>list</p>
+</dd>
+<dt class="field-odd">param params</dt>
+<dd class="field-odd"><p>marginal distribution parameters.</p>
+</dd>
+<dt class="field-even">type params</dt>
+<dd class="field-even"><p>list</p>
+</dd>
+<dt class="field-odd">param corr</dt>
+<dd class="field-odd"><p>Non-Gaussian Correlation matrix.</p>
+</dd>
+<dt class="field-even">type corr</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">param beta</dt>
+<dd class="field-odd"><p>A variable selected to optimize convergence speed and desired accuracy.</p>
+</dd>
+<dt class="field-even">type beta</dt>
+<dd class="field-even"><p>int</p>
+</dd>
+<dt class="field-odd">param thresh1</dt>
+<dd class="field-odd"><p>Threshold</p>
+</dd>
+<dt class="field-even">type thresh1</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+<dt class="field-odd">param thresh2</dt>
+<dd class="field-odd"><p>Threshold</p>
+</dd>
+<dt class="field-even">type thresh2</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return corr_norm</dt>
+<dd class="field-odd"><p>Gaussian correlation matrix</p>
+</dd>
+<dt class="field-even">rtype corr_norm</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.nearest_pd">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">nearest_pd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#nearest_pd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.nearest_pd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description:</p>
+<blockquote>
+<div><p>Find the nearest positive-definite matrix to input
+A Python/Numpy port of John D’Errico’s <cite>nearestSPD</cite> MATLAB code [1], which
+credits [2].
+[1] <a class="reference external" href="https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd">https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd</a>
+[2] N.J. Higham, “Computing a nearest symmetric positive semidefinite
+matrix” (1988): <a class="reference external" href="https://doi.org/10.1016/0024-3795(88)90223-6">https://doi.org/10.1016/0024-3795(88)90223-6</a></p>
+</div></blockquote>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param a</dt>
+<dd class="field-odd"><p>Input matrix</p>
+</dd>
+<dt class="field-even">type a</dt>
+<dd class="field-even"><p></p></dd>
+</dl>
+</dd>
+</dl>
+<p>Output:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.nearest_psd">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">nearest_psd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">nit</span><span class="o">=</span><span class="default_value">10</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#nearest_psd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.nearest_psd" title="Permalink to this definition">¶</a></dt>
+<dd><dl>
+<dt>Description:</dt><dd><blockquote>
+<div><p>A function to compute the nearest positive semi definite matrix of a given matrix</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param a</dt>
+<dd class="field-odd"><p>Input matrix</p>
+</dd>
+<dt class="field-even">type a</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">param nit</dt>
+<dd class="field-odd"><p>Number of iterations to perform (Default=10)</p>
+</dd>
+<dt class="field-even">type nit</dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.run_corr">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">run_corr</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">samples</span></em>, <em class="sig-param"><span class="n">corr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#run_corr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.run_corr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description:</p>
+<blockquote>
+<div><p>A function which performs the Cholesky decomposition of the correlation matrix and correlates standard
+normal samples.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param corr</dt>
+<dd class="field-odd"><p>Correlation matrix</p>
+</dd>
+<dt class="field-even">type corr</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">param samples</dt>
+<dd class="field-odd"><p>Standard normal samples.</p>
+</dd>
+<dt class="field-even">type samples</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>samples_corr: Correlated standard normal samples</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>samples_corr: ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.run_decorr">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">run_decorr</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">samples</span></em>, <em class="sig-param"><span class="n">corr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#run_decorr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.run_decorr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description:</p>
+<blockquote>
+<div><p>A function which performs the Cholesky decomposition of the correlation matrix and de-correlates standard
+normal samples.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param corr</dt>
+<dd class="field-odd"><p>Correlation matrix</p>
+</dd>
+<dt class="field-even">type corr</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">param samples</dt>
+<dd class="field-odd"><p>standard normal samples.</p>
+</dd>
+<dt class="field-even">type samples</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>samples_uncorr: Uncorrelated standard normal samples</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>samples_uncorr: ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.suppress_stdout">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">suppress_stdout</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#suppress_stdout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.suppress_stdout" title="Permalink to this definition">¶</a></dt>
+<dd><p>A function to suppress output</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.transform_g_to_ng">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">transform_g_to_ng</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">corr_norm</span></em>, <em class="sig-param"><span class="n">dist</span></em>, <em class="sig-param"><span class="n">dist_params</span></em>, <em class="sig-param"><span class="n">samples_g</span></em>, <em class="sig-param"><span class="n">jacobian</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#transform_g_to_ng"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.transform_g_to_ng" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description:</p>
+<blockquote>
+<div><p>A function that performs transformation of a Gaussian random variable to a non-Gaussian one.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param corr_norm</dt>
+<dd class="field-odd"><p>Correlation matrix in the standard normal space</p>
+</dd>
+<dt class="field-even">type corr_norm</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">param dist</dt>
+<dd class="field-odd"><p>marginal distributions</p>
+</dd>
+<dt class="field-even">type dist</dt>
+<dd class="field-even"><p>list</p>
+</dd>
+<dt class="field-odd">param dist_params</dt>
+<dd class="field-odd"><p>marginal distribution parameters</p>
+</dd>
+<dt class="field-even">type dist_params</dt>
+<dd class="field-even"><p>list</p>
+</dd>
+<dt class="field-odd">param samples_g</dt>
+<dd class="field-odd"><p>Gaussian samples</p>
+</dd>
+<dt class="field-even">type samples_g</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">param jacobian</dt>
+<dd class="field-odd"><p>The Jacobian of the transformation</p>
+</dd>
+<dt class="field-even">type jacobian</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>samples_ng: Gaussian samples</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>samples_ng: ndarray</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>jacobian: The jacobian</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>jacobian: ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="UQpy.Utilities.transform_ng_to_g">
+<code class="sig-prename descclassname">UQpy.Utilities.</code><code class="sig-name descname">transform_ng_to_g</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">corr_norm</span></em>, <em class="sig-param"><span class="n">dist</span></em>, <em class="sig-param"><span class="n">dist_params</span></em>, <em class="sig-param"><span class="n">samples_ng</span></em>, <em class="sig-param"><span class="n">jacobian</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/UQpy/Utilities.html#transform_ng_to_g"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#UQpy.Utilities.transform_ng_to_g" title="Permalink to this definition">¶</a></dt>
+<dd><p>Description:</p>
+<blockquote>
+<div><p>A function that performs transformation of a non-Gaussian random variable to a Gaussian one.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Input:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param corr_norm</dt>
+<dd class="field-odd"><p>Correlation matrix in the standard normal space</p>
+</dd>
+<dt class="field-even">type corr_norm</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">param dist</dt>
+<dd class="field-odd"><p>marginal distributions</p>
+</dd>
+<dt class="field-even">type dist</dt>
+<dd class="field-even"><p>list</p>
+</dd>
+<dt class="field-odd">param dist_params</dt>
+<dd class="field-odd"><p>marginal distribution parameters</p>
+</dd>
+<dt class="field-even">type dist_params</dt>
+<dd class="field-even"><p>list</p>
+</dd>
+<dt class="field-odd">param samples_ng</dt>
+<dd class="field-odd"><p>non-Gaussian samples</p>
+</dd>
+<dt class="field-even">type samples_ng</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+<dt class="field-odd">param jacobian</dt>
+<dd class="field-odd"><p>The Jacobian of the transformation</p>
+</dd>
+<dt class="field-even">type jacobian</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>samples_g: Gaussian samples</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>samples_g: ndarray</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>jacobian: The jacobian</p>
+</dd>
+<dt class="field-even">rtype</dt>
+<dd class="field-even"><p>jacobian: ndarray</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="footnote brackets">
+<dt class="label" id="id1"><span class="brackets">1</span></dt>
+<dd><p>N.J. Higham, “Computing a nearest symmetric positive semidefinite matrix” (1988), <a class="reference external" href="https://doi.org/10.1016/0024-3795(88)90223-6">https://doi.org/10.1016/0024-3795(88)90223-6</a>.</p>
+</dd>
+<dt class="label" id="id2"><span class="brackets">2</span></dt>
+<dd><p><a class="reference external" href="https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd">https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd</a></p>
+</dd>
+<dt class="label" id="id3"><span class="brackets">3</span></dt>
+<dd><p>Houduo Qi, Defeng Sun, A Quadratically Convergent Newton Method for Computing the Nearest Correlation Matrix, SIAM Journal on Matrix Analysis and Applications 28(2):360-385, 2006.</p>
+</dd>
+</dl>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">aaaaa</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation_doc.html">Introduction</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, aaaa.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/utilities_doc.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

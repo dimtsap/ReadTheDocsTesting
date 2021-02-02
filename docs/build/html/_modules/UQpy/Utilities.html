@@ -1,0 +1,1097 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UQpy.Utilities &#8212; UQpy v3.0.3 documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for UQpy.Utilities</h1><div class="highlight"><pre>
+<span></span><span class="c1"># UQpy is distributed under the MIT license.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2018  -- Michael D. Shields</span>
+<span class="c1">#</span>
+<span class="c1"># Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated</span>
+<span class="c1"># documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the</span>
+<span class="c1"># rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit</span>
+<span class="c1"># persons to whom the Software is furnished to do so, subject to the following conditions:</span>
+<span class="c1">#</span>
+<span class="c1"># The above copyright notice and this permission notice shall be included in all copies or substantial portions of the</span>
+<span class="c1"># Software.</span>
+<span class="c1">#</span>
+<span class="c1"># THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE</span>
+<span class="c1"># WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR</span>
+<span class="c1"># COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR</span>
+<span class="c1"># OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</span>
+
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">scipy.stats</span> <span class="k">as</span> <span class="nn">stats</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">gamma</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">chi2</span><span class="p">,</span> <span class="n">norm</span>
+
+
+<span class="c1"># This function is for parallel execution of a Python model</span>
+
+<span class="k">def</span> <span class="nf">_run_parallel_python</span><span class="p">(</span><span class="n">model_script</span><span class="p">,</span> <span class="n">model_object_name</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execute the python model in parallel</span>
+<span class="sd">    :param sample: One sample point where the model has to be evaluated</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">exec</span><span class="p">(</span><span class="s1">&#39;from &#39;</span> <span class="o">+</span> <span class="n">model_script</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39; import &#39;</span> <span class="o">+</span> <span class="n">model_object_name</span><span class="p">)</span>
+    <span class="n">par_res</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">model_object_name</span> <span class="o">+</span> <span class="s1">&#39;(sample)&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">par_res</span>
+
+
+<div class="viewcode-block" id="transform_ng_to_g"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.transform_ng_to_g">[docs]</a><span class="k">def</span> <span class="nf">transform_ng_to_g</span><span class="p">(</span><span class="n">corr_norm</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">dist_params</span><span class="p">,</span> <span class="n">samples_ng</span><span class="p">,</span> <span class="n">jacobian</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+
+<span class="sd">            A function that performs transformation of a non-Gaussian random variable to a Gaussian one.</span>
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param corr_norm: Correlation matrix in the standard normal space</span>
+<span class="sd">            :type corr_norm: ndarray</span>
+
+<span class="sd">            :param dist: marginal distributions</span>
+<span class="sd">            :type dist: list</span>
+
+<span class="sd">            :param dist_params: marginal distribution parameters</span>
+<span class="sd">            :type dist_params: list</span>
+
+<span class="sd">            :param samples_ng: non-Gaussian samples</span>
+<span class="sd">            :type samples_ng: ndarray</span>
+
+<span class="sd">            :param jacobian: The Jacobian of the transformation</span>
+<span class="sd">            :type jacobian: ndarray</span>
+
+<span class="sd">        Output:</span>
+<span class="sd">            :return: samples_g: Gaussian samples</span>
+<span class="sd">            :rtype: samples_g: ndarray</span>
+
+<span class="sd">            :return: jacobian: The jacobian</span>
+<span class="sd">            :rtype: jacobian: ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">cholesky</span>
+
+    <span class="n">a_</span> <span class="o">=</span> <span class="n">cholesky</span><span class="p">(</span><span class="n">corr_norm</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">samples_g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">samples_ng</span><span class="p">)</span>
+    <span class="n">m</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">samples_ng</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">cdf</span> <span class="o">=</span> <span class="n">dist</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">cdf</span>
+        <span class="n">samples_g</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="n">cdf</span><span class="p">(</span><span class="n">samples_ng</span><span class="p">[:,</span> <span class="n">j</span><span class="p">],</span> <span class="n">dist_params</span><span class="p">[</span><span class="n">j</span><span class="p">]))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">jacobian</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;UQpy: Done.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">samples_g</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">temp_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+        <span class="n">jacobian</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">m</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                <span class="n">pdf</span> <span class="o">=</span> <span class="n">dist</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">pdf</span>
+                <span class="n">temp_</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">samples_g</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span> <span class="o">/</span> <span class="n">pdf</span><span class="p">(</span><span class="n">samples_ng</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">dist_params</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+            <span class="n">jacobian</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">temp_</span><span class="p">,</span> <span class="n">a_</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">samples_g</span><span class="p">,</span> <span class="n">jacobian</span></div>
+
+
+<div class="viewcode-block" id="transform_g_to_ng"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.transform_g_to_ng">[docs]</a><span class="k">def</span> <span class="nf">transform_g_to_ng</span><span class="p">(</span><span class="n">corr_norm</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">dist_params</span><span class="p">,</span> <span class="n">samples_g</span><span class="p">,</span> <span class="n">jacobian</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+
+<span class="sd">            A function that performs transformation of a Gaussian random variable to a non-Gaussian one.</span>
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param corr_norm: Correlation matrix in the standard normal space</span>
+<span class="sd">            :type corr_norm: ndarray</span>
+
+<span class="sd">            :param dist: marginal distributions</span>
+<span class="sd">            :type dist: list</span>
+
+<span class="sd">            :param dist_params: marginal distribution parameters</span>
+<span class="sd">            :type dist_params: list</span>
+
+<span class="sd">            :param samples_g: Gaussian samples</span>
+<span class="sd">            :type samples_g: ndarray</span>
+
+<span class="sd">            :param jacobian: The Jacobian of the transformation</span>
+<span class="sd">            :type jacobian: ndarray</span>
+
+<span class="sd">        Output:</span>
+<span class="sd">            :return: samples_ng: Gaussian samples</span>
+<span class="sd">            :rtype: samples_ng: ndarray</span>
+
+<span class="sd">            :return: jacobian: The jacobian</span>
+<span class="sd">            :rtype: jacobian: ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">cholesky</span>
+
+    <span class="n">samples_ng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">samples_g</span><span class="p">)</span>
+    <span class="n">m</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">samples_g</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">i_cdf</span> <span class="o">=</span> <span class="n">dist</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">icdf</span>
+        <span class="n">samples_ng</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">i_cdf</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">samples_g</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]),</span> <span class="n">dist_params</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">jacobian</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;UQpy: Done.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">samples_ng</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">a_</span> <span class="o">=</span> <span class="n">cholesky</span><span class="p">(</span><span class="n">corr_norm</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">temp_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+        <span class="n">jacobian</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">m</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                <span class="n">pdf</span> <span class="o">=</span> <span class="n">dist</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">pdf</span>
+                <span class="n">temp_</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">pdf</span><span class="p">(</span><span class="n">samples_ng</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">dist_params</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">/</span> <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">samples_g</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+            <span class="n">jacobian</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">a_</span><span class="p">,</span> <span class="n">temp_</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">samples_ng</span><span class="p">,</span> <span class="n">jacobian</span></div>
+
+
+<div class="viewcode-block" id="run_corr"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.run_corr">[docs]</a><span class="k">def</span> <span class="nf">run_corr</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">corr</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+
+<span class="sd">            A function which performs the Cholesky decomposition of the correlation matrix and correlates standard</span>
+<span class="sd">            normal samples.</span>
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param corr: Correlation matrix</span>
+<span class="sd">            :type corr: ndarray</span>
+
+<span class="sd">            :param samples: Standard normal samples.</span>
+<span class="sd">            :type samples: ndarray</span>
+
+
+<span class="sd">        Output:</span>
+<span class="sd">            :return: samples_corr: Correlated standard normal samples</span>
+<span class="sd">            :rtype: samples_corr: ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">cholesky</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cholesky</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">samples_corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">samples</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">samples_corr</span><span class="o">.</span><span class="n">T</span></div>
+
+
+<div class="viewcode-block" id="run_decorr"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.run_decorr">[docs]</a><span class="k">def</span> <span class="nf">run_decorr</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">corr</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+
+<span class="sd">            A function which performs the Cholesky decomposition of the correlation matrix and de-correlates standard</span>
+<span class="sd">            normal samples.</span>
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param corr: Correlation matrix</span>
+<span class="sd">            :type corr: ndarray</span>
+
+<span class="sd">            :param samples: standard normal samples.</span>
+<span class="sd">            :type samples: ndarray</span>
+
+
+<span class="sd">        Output:</span>
+<span class="sd">            :return: samples_uncorr: Uncorrelated standard normal samples</span>
+<span class="sd">            :rtype: samples_uncorr: ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">cholesky</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cholesky</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">inv_corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+    <span class="n">samples_uncorr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">inv_corr</span><span class="p">,</span> <span class="n">samples</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">samples_uncorr</span><span class="o">.</span><span class="n">T</span></div>
+
+
+<div class="viewcode-block" id="correlation_distortion"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.correlation_distortion">[docs]</a><span class="k">def</span> <span class="nf">correlation_distortion</span><span class="p">(</span><span class="n">marginal</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">rho_norm</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+
+<span class="sd">            A function to solve the double integral equation in order to evaluate the modified correlation</span>
+<span class="sd">            matrix in the standard normal space given the correlation matrix in the original space. This is achieved</span>
+<span class="sd">            by a quadratic two-dimensional Gauss-Legendre integration.</span>
+<span class="sd">            This function is a part of the ERADIST code that can be found in:</span>
+<span class="sd">            https://www.era.bgu.tum.de/en/software/</span>
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param marginal: marginal distributions</span>
+<span class="sd">            :type marginal: list</span>
+
+<span class="sd">            :param params: marginal distribution parameters.</span>
+<span class="sd">            :type params: list</span>
+
+<span class="sd">            :param rho_norm: Correlation at standard normal space.</span>
+<span class="sd">            :type rho_norm: ndarray</span>
+
+<span class="sd">        Output:</span>
+<span class="sd">            :return rho: Distorted correlation</span>
+<span class="sd">            :rtype rho: ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">1024</span>
+    <span class="n">z_max</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="n">z_min</span> <span class="o">=</span> <span class="o">-</span><span class="n">z_max</span>
+    <span class="n">points</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">polynomial</span><span class="o">.</span><span class="n">legendre</span><span class="o">.</span><span class="n">leggauss</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="o">-</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">points</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">z_max</span> <span class="o">-</span> <span class="n">z_min</span><span class="p">)</span> <span class="o">+</span> <span class="n">z_min</span><span class="p">)</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">z_max</span> <span class="o">-</span> <span class="n">z_min</span><span class="p">))</span>
+
+    <span class="n">xi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">xi</span> <span class="o">=</span> <span class="n">xi</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+    <span class="n">eta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+
+    <span class="n">first</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">first</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+    <span class="n">second</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">first</span><span class="p">)</span>
+
+    <span class="n">weights2d</span> <span class="o">=</span> <span class="n">first</span> <span class="o">*</span> <span class="n">second</span>
+    <span class="n">w2d</span> <span class="o">=</span> <span class="n">weights2d</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">rho_norm</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;UQpy: Computing Nataf correlation distortion...&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">marginal</span><span class="p">)):</span>
+        <span class="n">i_cdf_i</span> <span class="o">=</span> <span class="n">marginal</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">icdf</span>
+        <span class="n">moments_i</span> <span class="o">=</span> <span class="n">marginal</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">moments</span>
+        <span class="n">mi</span> <span class="o">=</span> <span class="n">moments_i</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">mi</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">mi</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;UQpy: The marginal distributions need to have finite mean and variance.&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">marginal</span><span class="p">)):</span>
+            <span class="n">i_cdf_j</span> <span class="o">=</span> <span class="n">marginal</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">icdf</span>
+            <span class="n">moments_j</span> <span class="o">=</span> <span class="n">marginal</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">moments</span>
+            <span class="n">mj</span> <span class="o">=</span> <span class="n">moments_j</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">mj</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">mj</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;UQpy: The marginal distributions need to have finite mean and variance.&quot;</span><span class="p">)</span>
+
+            <span class="n">tmp_f_xi</span> <span class="o">=</span> <span class="p">((</span><span class="n">i_cdf_j</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">xi</span><span class="p">),</span> <span class="n">params</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">-</span> <span class="n">mj</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mj</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">tmp_f_eta</span> <span class="o">=</span> <span class="p">((</span><span class="n">i_cdf_i</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">eta</span><span class="p">),</span> <span class="n">params</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">-</span> <span class="n">mi</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mi</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">coef</span> <span class="o">=</span> <span class="n">tmp_f_xi</span> <span class="o">*</span> <span class="n">tmp_f_eta</span> <span class="o">*</span> <span class="n">w2d</span>
+
+            <span class="n">rho</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">coef</span> <span class="o">*</span> <span class="n">bi_variate_normal_pdf</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="n">rho_norm</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]))</span>
+            <span class="n">rho</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">rho</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;UQpy: Done.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rho</span></div>
+
+
+<div class="viewcode-block" id="itam"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.itam">[docs]</a><span class="k">def</span> <span class="nf">itam</span><span class="p">(</span><span class="n">marginal</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">corr</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">thresh1</span><span class="p">,</span> <span class="n">thresh2</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+
+<span class="sd">            A function to perform the  Iterative Translation Approximation Method;  an iterative scheme for</span>
+<span class="sd">            upgrading the Gaussian power spectral density function.</span>
+<span class="sd">            [1] Shields M, Deodatis G, Bocchini P. A simple and efficient methodology to approximate a general</span>
+<span class="sd">            non-Gaussian  stochastic process by a translation process. Probab Eng Mech 2011;26:511–9.</span>
+
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param marginal: marginal distributions</span>
+<span class="sd">            :type marginal: list</span>
+
+<span class="sd">            :param params: marginal distribution parameters.</span>
+<span class="sd">            :type params: list</span>
+
+<span class="sd">            :param corr: Non-Gaussian Correlation matrix.</span>
+<span class="sd">            :type corr: ndarray</span>
+
+<span class="sd">            :param beta:  A variable selected to optimize convergence speed and desired accuracy.</span>
+<span class="sd">            :type beta: int</span>
+
+<span class="sd">            :param thresh1: Threshold</span>
+<span class="sd">            :type thresh1: float</span>
+
+<span class="sd">            :param thresh2: Threshold</span>
+<span class="sd">            :type thresh2: float</span>
+
+<span class="sd">        Output:</span>
+<span class="sd">            :return corr_norm: Gaussian correlation matrix</span>
+<span class="sd">            :rtype corr_norm: ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">beta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">thresh1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">thresh1</span> <span class="o">=</span> <span class="mf">0.0001</span>
+    <span class="k">if</span> <span class="n">thresh2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">thresh2</span> <span class="o">=</span> <span class="mf">0.01</span>
+
+    <span class="c1"># Initial Guess</span>
+    <span class="n">corr_norm0</span> <span class="o">=</span> <span class="n">corr</span>
+    <span class="n">corr_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">corr_norm0</span><span class="p">)</span>
+    <span class="c1"># Iteration Condition</span>
+    <span class="n">error0</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="n">error1</span> <span class="o">=</span> <span class="mf">100.</span>
+    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="n">iter_</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;UQpy: Initializing Iterative Translation Approximation Method (ITAM)&quot;</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">iter_</span> <span class="o">&lt;</span> <span class="n">max_iter</span> <span class="ow">and</span> <span class="n">error1</span> <span class="o">&gt;</span> <span class="n">thresh1</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">error1</span><span class="o">-</span><span class="n">error0</span><span class="p">)</span><span class="o">/</span><span class="n">error0</span> <span class="o">&gt;</span> <span class="n">thresh2</span><span class="p">:</span>
+        <span class="n">error0</span> <span class="o">=</span> <span class="n">error1</span>
+        <span class="n">corr0</span> <span class="o">=</span> <span class="n">correlation_distortion</span><span class="p">(</span><span class="n">marginal</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">corr_norm0</span><span class="p">)</span>
+        <span class="n">error1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">corr</span> <span class="o">-</span> <span class="n">corr0</span><span class="p">)</span>
+
+        <span class="n">max_ratio</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">corr</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">corr</span><span class="p">)))</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">corr_norm0</span><span class="p">))</span>
+
+        <span class="n">corr_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">((</span><span class="n">corr</span> <span class="o">/</span> <span class="n">corr0</span><span class="p">)</span><span class="o">**</span><span class="n">beta</span> <span class="o">*</span> <span class="n">corr_norm0</span><span class="p">)</span>
+
+        <span class="c1"># Do not allow off-diagonal correlations to equal or exceed one</span>
+        <span class="n">corr_norm</span><span class="p">[</span><span class="n">corr_norm</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">max_ratio</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">corr_norm0</span><span class="p">[</span><span class="n">corr_norm</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">]</span>
+        <span class="n">corr_norm</span><span class="p">[</span><span class="n">corr_norm</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">max_ratio</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">corr_norm0</span><span class="p">[</span><span class="n">corr_norm</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">]</span>
+
+        <span class="c1"># Iteratively finding the nearest PSD(Qi &amp; Sun, 2006)</span>
+        <span class="n">corr_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">nearest_psd</span><span class="p">(</span><span class="n">corr_norm</span><span class="p">))</span>
+
+        <span class="n">corr_norm0</span> <span class="o">=</span> <span class="n">corr_norm</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">iter_</span> <span class="o">=</span> <span class="n">iter_</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="nb">print</span><span class="p">([</span><span class="s2">&quot;UQpy: ITAM iteration number &quot;</span><span class="p">,</span> <span class="n">iter_</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">([</span><span class="s2">&quot;UQpy: Current error, &quot;</span><span class="p">,</span> <span class="n">error1</span><span class="p">])</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;UQpy: ITAM Done.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">corr_norm</span></div>
+
+
+<div class="viewcode-block" id="bi_variate_normal_pdf"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.bi_variate_normal_pdf">[docs]</a><span class="k">def</span> <span class="nf">bi_variate_normal_pdf</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">rho</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Description:</span>
+
+<span class="sd">            A function which evaluates the values of the bi-variate normal probability distribution function.</span>
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param x1: value 1</span>
+<span class="sd">            :type x1: ndarray</span>
+
+<span class="sd">            :param x2: value 2</span>
+<span class="sd">            :type x2: ndarray</span>
+
+<span class="sd">            :param rho: correlation between x1, x2</span>
+<span class="sd">            :type rho: float</span>
+
+<span class="sd">        Output:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">rho</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span> <span class="o">*</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">rho</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span> <span class="o">*</span>
+                   <span class="p">(</span><span class="n">x1</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">x1</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">+</span> <span class="n">x2</span><span class="o">**</span><span class="mi">2</span><span class="p">)))</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_a_plus</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+
+<span class="sd">            A supporting function for the nearest_pd function</span>
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param a:A general nd array</span>
+
+<span class="sd">        Output:</span>
+<span class="sd">            :return a_plus: A modified nd array</span>
+<span class="sd">            :rtype:np.ndarray</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">eig_val</span><span class="p">,</span> <span class="n">eig_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">eig_vec</span><span class="p">)</span>
+    <span class="n">x_diagonal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">eig_val</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="n">q</span> <span class="o">*</span> <span class="n">x_diagonal</span> <span class="o">*</span> <span class="n">q</span><span class="o">.</span><span class="n">T</span>
+
+
+<span class="k">def</span> <span class="nf">_get_ps</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+
+<span class="sd">            A supporting function for the nearest_pd function</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">w05</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">w</span> <span class="o">**</span> <span class="o">.</span><span class="mi">5</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">w05</span><span class="o">.</span><span class="n">I</span> <span class="o">*</span> <span class="n">_get_a_plus</span><span class="p">(</span><span class="n">w05</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">w05</span><span class="p">)</span> <span class="o">*</span> <span class="n">w05</span><span class="o">.</span><span class="n">I</span>
+
+
+<span class="k">def</span> <span class="nf">_get_pu</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+
+<span class="sd">            A supporting function for the nearest_pd function</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">a_ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+    <span class="n">a_ret</span><span class="p">[</span><span class="n">w</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">w</span><span class="p">)[</span><span class="n">w</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">a_ret</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="nearest_psd"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.nearest_psd">[docs]</a><span class="k">def</span> <span class="nf">nearest_psd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">nit</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+<span class="sd">            A function to compute the nearest positive semi definite matrix of a given matrix</span>
+
+<span class="sd">         Input:</span>
+<span class="sd">            :param a: Input matrix</span>
+<span class="sd">            :type a: ndarray</span>
+
+<span class="sd">            :param nit: Number of iterations to perform (Default=10)</span>
+<span class="sd">            :type nit: int</span>
+
+<span class="sd">        Output:</span>
+<span class="sd">            :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="c1"># w is the matrix used for the norm (assumed to be Identity matrix here)</span>
+    <span class="c1"># the algorithm should work for any diagonal W</span>
+    <span class="n">delta_s</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">y_k</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nit</span><span class="p">):</span>
+
+        <span class="n">r_k</span> <span class="o">=</span> <span class="n">y_k</span> <span class="o">-</span> <span class="n">delta_s</span>
+        <span class="n">x_k</span> <span class="o">=</span> <span class="n">_get_ps</span><span class="p">(</span><span class="n">r_k</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
+        <span class="n">delta_s</span> <span class="o">=</span> <span class="n">x_k</span> <span class="o">-</span> <span class="n">r_k</span>
+        <span class="n">y_k</span> <span class="o">=</span> <span class="n">_get_pu</span><span class="p">(</span><span class="n">x_k</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">y_k</span></div>
+
+
+<div class="viewcode-block" id="nearest_pd"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.nearest_pd">[docs]</a><span class="k">def</span> <span class="nf">nearest_pd</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+
+<span class="sd">            Find the nearest positive-definite matrix to input</span>
+<span class="sd">            A Python/Numpy port of John D&#39;Errico&#39;s `nearestSPD` MATLAB code [1], which</span>
+<span class="sd">            credits [2].</span>
+<span class="sd">            [1] https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd</span>
+<span class="sd">            [2] N.J. Higham, &quot;Computing a nearest symmetric positive semidefinite</span>
+<span class="sd">            matrix&quot; (1988): https://doi.org/10.1016/0024-3795(88)90223-6</span>
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param a: Input matrix</span>
+<span class="sd">            :type a:</span>
+
+
+<span class="sd">        Output:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">a</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+    <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="n">v</span><span class="p">))</span>
+
+    <span class="n">a2</span> <span class="o">=</span> <span class="p">(</span><span class="n">b</span> <span class="o">+</span> <span class="n">h</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="n">a3</span> <span class="o">=</span> <span class="p">(</span><span class="n">a2</span> <span class="o">+</span> <span class="n">a2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="k">if</span> <span class="n">is_pd</span><span class="p">(</span><span class="n">a3</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">a3</span>
+
+    <span class="n">spacing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">spacing</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+    <span class="c1"># The above is different from [1]. It appears that MATLAB&#39;s `chol` Cholesky</span>
+    <span class="c1"># decomposition will accept matrices with exactly 0-eigenvalue, whereas</span>
+    <span class="c1"># Numpy&#39;s will not. So where [1] uses `eps(mineig)` (where `eps` is Matlab</span>
+    <span class="c1"># for `np.spacing`), we use the above definition. CAVEAT: our `spacing`</span>
+    <span class="c1"># will be much larger than [1]&#39;s `eps(mineig)`, since `mineig` is usually on</span>
+    <span class="c1"># the order of 1e-16, and `eps(1e-16)` is on the order of 1e-34, whereas</span>
+    <span class="c1"># `spacing` will, for Gaussian random matrices of small dimension, be on</span>
+    <span class="c1"># other order of 1e-16. In practice, both ways converge, as the unit test</span>
+    <span class="c1"># below suggests.</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">is_pd</span><span class="p">(</span><span class="n">a3</span><span class="p">):</span>
+        <span class="n">min_eig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigvals</span><span class="p">(</span><span class="n">a3</span><span class="p">)))</span>
+        <span class="n">a3</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">min_eig</span> <span class="o">*</span> <span class="n">k</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">spacing</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">a3</span></div>
+
+
+<div class="viewcode-block" id="is_pd"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.is_pd">[docs]</a><span class="k">def</span> <span class="nf">is_pd</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+
+<span class="sd">            Returns true when input is positive-definite, via Cholesky decomposition.</span>
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param b: A general matrix</span>
+
+<span class="sd">        Output:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="estimate_psd"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.estimate_psd">[docs]</a><span class="k">def</span> <span class="nf">estimate_psd</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description: A function to estimate the Power Spectrum of a stochastic process given an ensemble of samples</span>
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param samples: Samples of the stochastic process</span>
+<span class="sd">            :param nt: Number of time discretisations in the time domain</span>
+<span class="sd">            :param t: Total simulation time</span>
+
+<span class="sd">        Output:</span>
+<span class="sd">            :return: Power Spectrum</span>
+<span class="sd">            :rtype: ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">sample_size</span> <span class="o">=</span> <span class="n">nt</span>
+    <span class="n">sample_max_time</span> <span class="o">=</span> <span class="n">t</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">t</span> <span class="o">/</span> <span class="p">(</span><span class="n">nt</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">x_w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">x_w</span> <span class="o">=</span> <span class="n">x_w</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">sample_size</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)]</span>
+    <span class="n">m_ps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">x_w</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">sample_max_time</span> <span class="o">/</span> <span class="n">sample_size</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">dt</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">t</span><span class="p">),</span> <span class="n">num</span><span class="p">),</span> <span class="n">m_ps</span></div>
+
+
+<div class="viewcode-block" id="S_to_R"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.S_to_R">[docs]</a><span class="k">def</span> <span class="nf">S_to_R</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description:</span>
+
+<span class="sd">            A function to transform the power spectrum to an autocorrelation function</span>
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param s: Power Spectrum of the signal</span>
+<span class="sd">            :param w: Array of frequency discretisations</span>
+<span class="sd">            :param t: Array of time discretisations</span>
+
+<span class="sd">        Output:</span>
+<span class="sd">            :return r: Autocorrelation function</span>
+<span class="sd">            :rtype: ndarray</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">dw</span> <span class="o">=</span> <span class="n">w</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">fac</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>
+    <span class="n">fac</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">fac</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">fac</span> <span class="o">=</span> <span class="n">fac</span> <span class="o">*</span> <span class="n">dw</span> <span class="o">/</span> <span class="mi">3</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)):</span>
+        <span class="n">R</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">fac</span><span class="p">,</span> <span class="n">S</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">t</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">R</span></div>
+
+
+<div class="viewcode-block" id="R_to_S"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.R_to_S">[docs]</a><span class="k">def</span> <span class="nf">R_to_S</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description: A function to transform the autocorrelation function to a power spectrum</span>
+
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param r: Autocorrelation function of the signal</span>
+<span class="sd">            :param w: Array of frequency discretizations</span>
+<span class="sd">            :param t: Array of time discretizations</span>
+
+<span class="sd">        Output:</span>
+<span class="sd">            :return s: Power Spectrum</span>
+<span class="sd">            :rtype: ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">fac</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+    <span class="n">fac</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">fac</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">fac</span> <span class="o">=</span> <span class="n">fac</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">/</span> <span class="mi">3</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)):</span>
+        <span class="n">S</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">fac</span><span class="p">,</span> <span class="n">R</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="n">w</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+    <span class="n">S</span><span class="p">[</span><span class="n">S</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">S</span></div>
+
+
+<div class="viewcode-block" id="R_to_r"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.R_to_r">[docs]</a><span class="k">def</span> <span class="nf">R_to_r</span><span class="p">(</span><span class="n">R</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Description: A function to scale down the autocorrelation function to a correlation function</span>
+
+
+<span class="sd">        Input:</span>
+<span class="sd">            :param R: Autocorrelation function of the signal</span>
+<span class="sd">        Output:</span>
+<span class="sd">            :return r: correlation function of the signal</span>
+<span class="sd">            :rtype: ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">R</span><span class="o">/</span><span class="n">R</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">r</span></div>
+
+
+<div class="viewcode-block" id="gradient"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.gradient">[docs]</a><span class="k">def</span> <span class="nf">gradient</span><span class="p">(</span><span class="n">sample</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="n">model_script</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model_object_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_template</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">var_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">output_script</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_object_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntasks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cores_per_task</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">verbose</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cluster</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">         Description: A function to estimate the gradients (1st, 2nd, mixed) of a function using finite differences</span>
+
+
+<span class="sd">         Input:</span>
+<span class="sd">             :param sample: The sample values at which the gradient of the model will be evaluated. Samples can be</span>
+<span class="sd">             passed directly as  an array or can be passed through the text file &#39;UQpy_Samples.txt&#39;.</span>
+<span class="sd">             If passing samples via text file, set samples = None or do not set the samples input.</span>
+<span class="sd">             :type sample: ndarray</span>
+
+<span class="sd">             :param order: The type of derivatives to calculate (1st order, second order, mixed).</span>
+<span class="sd">             :type order: str</span>
+
+<span class="sd">             :param dimension: Number of random variables.</span>
+<span class="sd">             :type dimension: int</span>
+
+<span class="sd">             :param eps: step for the finite difference.</span>
+<span class="sd">             :type eps: float</span>
+
+<span class="sd">             :param model_script: The filename of the Python script which contains commands to execute the model</span>
+
+<span class="sd">             :param model_object_name: The name of the function or class which executes the model</span>
+
+<span class="sd">             :param input_template: The name of the template input file which will be used to generate input files for</span>
+<span class="sd">              each run of the model. Refer documentation for more details.</span>
+
+<span class="sd">             :param var_names: A list containing the names of the variables which are present in the template input</span>
+<span class="sd">              files</span>
+
+<span class="sd">             :param output_script: The filename of the Python script which contains the commands to process the output</span>
+
+<span class="sd">             :param output_object_name: The name of the function or class which has the output values. If the object</span>
+<span class="sd">              is a class named cls, the output must be saved as cls.qoi. If it a function, it should return the output</span>
+<span class="sd">              quantity of interest</span>
+
+<span class="sd">             :param ntasks: Number of tasks to be run in parallel. RunModel uses GNU parallel to execute models which</span>
+<span class="sd">              require an input template</span>
+
+<span class="sd">             :param cores_per_task: Number of cores to be used by each task</span>
+
+<span class="sd">             :param nodes: On MARCC, each node has 24 cores_per_task. Specify the number of nodes if more than one</span>
+<span class="sd">              node is required.</span>
+
+<span class="sd">             :param resume: This option can be set to True if a parallel execution of a model with input template</span>
+<span class="sd">              failed to finish running all jobs. GNU parallel will then run only the jobs which failed to execute.</span>
+
+<span class="sd">             :param verbose: This option can be set to False if you do not want RunModel to print status messages to</span>
+<span class="sd">              the screen during execution. It is True by default.</span>
+
+<span class="sd">             :param model_dir: The directory  that contains the Python script which contains commands to execute the</span>
+<span class="sd">             model</span>
+
+<span class="sd">             :param cluster: This option defines if we run the code into a cluster</span>
+
+<span class="sd">         Output:</span>
+<span class="sd">             :return du_dj: vector of first-order gradients</span>
+<span class="sd">             :rtype: ndarray</span>
+<span class="sd">             :return d2u_dj: vector of second-order gradients</span>
+<span class="sd">             :rtype: ndarray</span>
+<span class="sd">             :return d2u_dij: vector of mixed gradients</span>
+<span class="sd">             :rtype: ndarray</span>
+<span class="sd">     &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">UQpy.RunModel</span> <span class="kn">import</span> <span class="n">RunModel</span>
+
+    <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Exit code: Provide type of derivatives: first, second or mixed.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dimension</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Error: Dimension must be defined&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">eps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">]</span><span class="o">*</span><span class="n">dimension</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="p">[</span><span class="n">eps</span><span class="p">]</span> <span class="o">*</span> <span class="n">dimension</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span> <span class="o">!=</span> <span class="n">dimension</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Exit code: Inconsistent dimensions.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">eps</span> <span class="o">=</span> <span class="p">[</span><span class="n">eps</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="n">dimension</span>
+
+    <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s1">&#39;first&#39;</span> <span class="ow">or</span> <span class="n">order</span> <span class="o">==</span> <span class="s1">&#39;second&#39;</span><span class="p">:</span>
+        <span class="n">du_dj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dimension</span><span class="p">)</span>
+        <span class="n">d2u_dj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dimension</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dimension</span><span class="p">):</span>
+            <span class="n">x_i1_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+            <span class="n">x_i1_j</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">x_1i_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+            <span class="n">x_1i_j</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+            <span class="n">g0</span> <span class="o">=</span> <span class="n">RunModel</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="n">x_i1_j</span><span class="p">,</span>  <span class="n">model_script</span><span class="o">=</span><span class="n">model_script</span><span class="p">,</span>
+                          <span class="n">model_object_name</span><span class="o">=</span><span class="n">model_object_name</span><span class="p">,</span>
+                          <span class="n">input_template</span><span class="o">=</span><span class="n">input_template</span><span class="p">,</span> <span class="n">var_names</span><span class="o">=</span><span class="n">var_names</span><span class="p">,</span> <span class="n">output_script</span><span class="o">=</span><span class="n">output_script</span><span class="p">,</span>
+                          <span class="n">output_object_name</span><span class="o">=</span><span class="n">output_object_name</span><span class="p">,</span>
+                          <span class="n">ntasks</span><span class="o">=</span><span class="n">ntasks</span><span class="p">,</span> <span class="n">cores_per_task</span><span class="o">=</span><span class="n">cores_per_task</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="n">resume</span><span class="p">,</span>
+                          <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">model_dir</span><span class="o">=</span><span class="n">model_dir</span><span class="p">,</span> <span class="n">cluster</span><span class="o">=</span><span class="n">cluster</span><span class="p">)</span>
+
+            <span class="n">g1</span> <span class="o">=</span> <span class="n">RunModel</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="n">x_1i_j</span><span class="p">,</span>  <span class="n">model_script</span><span class="o">=</span><span class="n">model_script</span><span class="p">,</span>
+                          <span class="n">model_object_name</span><span class="o">=</span><span class="n">model_object_name</span><span class="p">,</span>
+                          <span class="n">input_template</span><span class="o">=</span><span class="n">input_template</span><span class="p">,</span> <span class="n">var_names</span><span class="o">=</span><span class="n">var_names</span><span class="p">,</span> <span class="n">output_script</span><span class="o">=</span><span class="n">output_script</span><span class="p">,</span>
+                          <span class="n">output_object_name</span><span class="o">=</span><span class="n">output_object_name</span><span class="p">,</span>
+                          <span class="n">ntasks</span><span class="o">=</span><span class="n">ntasks</span><span class="p">,</span> <span class="n">cores_per_task</span><span class="o">=</span><span class="n">cores_per_task</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="n">resume</span><span class="p">,</span>
+                          <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">model_dir</span><span class="o">=</span><span class="n">model_dir</span><span class="p">,</span> <span class="n">cluster</span><span class="o">=</span><span class="n">cluster</span><span class="p">)</span>
+
+            <span class="n">du_dj</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">g0</span><span class="o">.</span><span class="n">qoi_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">g1</span><span class="o">.</span><span class="n">qoi_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s1">&#39;second&#39;</span><span class="p">:</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="n">RunModel</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="n">sample</span><span class="p">,</span> <span class="n">model_script</span><span class="o">=</span><span class="n">model_script</span><span class="p">,</span>
+                             <span class="n">model_object_name</span><span class="o">=</span><span class="n">model_object_name</span><span class="p">,</span>
+                             <span class="n">input_template</span><span class="o">=</span><span class="n">input_template</span><span class="p">,</span> <span class="n">var_names</span><span class="o">=</span><span class="n">var_names</span><span class="p">,</span> <span class="n">output_script</span><span class="o">=</span><span class="n">output_script</span><span class="p">,</span>
+                             <span class="n">output_object_name</span><span class="o">=</span><span class="n">output_object_name</span><span class="p">,</span>
+                             <span class="n">ntasks</span><span class="o">=</span><span class="n">ntasks</span><span class="p">,</span> <span class="n">cores_per_task</span><span class="o">=</span><span class="n">cores_per_task</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="n">resume</span><span class="p">,</span>
+                             <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">model_dir</span><span class="o">=</span><span class="n">model_dir</span><span class="p">,</span> <span class="n">cluster</span><span class="o">=</span><span class="n">cluster</span><span class="p">)</span>
+
+                <span class="n">d2u_dj</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">g0</span><span class="o">.</span><span class="n">qoi_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">g</span><span class="o">.</span><span class="n">qoi_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">g1</span><span class="o">.</span><span class="n">qoi_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">du_dj</span><span class="p">,</span> <span class="n">d2u_dj</span><span class="p">])</span>
+
+    <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="s1">&#39;mixed&#39;</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">itertools</span>
+        <span class="n">range_</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">dimension</span><span class="p">))</span>
+        <span class="n">d2u_dij</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">range_</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">x_i1_j1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+            <span class="n">x_i1_1j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+            <span class="n">x_1i_j1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+            <span class="n">x_1i_1j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+
+            <span class="n">x_i1_j1</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="n">x_i1_j1</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+
+            <span class="n">x_i1_1j</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="n">x_i1_1j</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">-=</span> <span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+
+            <span class="n">x_1i_j1</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">-=</span> <span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="n">x_1i_j1</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+
+            <span class="n">x_1i_1j</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">-=</span> <span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="n">x_1i_1j</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">-=</span> <span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+
+            <span class="n">g0</span> <span class="o">=</span> <span class="n">RunModel</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="n">x_i1_j1</span><span class="p">,</span>  <span class="n">model_script</span><span class="o">=</span><span class="n">model_script</span><span class="p">,</span>
+                          <span class="n">model_object_name</span><span class="o">=</span><span class="n">model_object_name</span><span class="p">,</span>
+                          <span class="n">input_template</span><span class="o">=</span><span class="n">input_template</span><span class="p">,</span> <span class="n">var_names</span><span class="o">=</span><span class="n">var_names</span><span class="p">,</span> <span class="n">output_script</span><span class="o">=</span><span class="n">output_script</span><span class="p">,</span>
+                          <span class="n">output_object_name</span><span class="o">=</span><span class="n">output_object_name</span><span class="p">,</span>
+                          <span class="n">ntasks</span><span class="o">=</span><span class="n">ntasks</span><span class="p">,</span> <span class="n">cores_per_task</span><span class="o">=</span><span class="n">cores_per_task</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="n">resume</span><span class="p">,</span>
+                          <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">model_dir</span><span class="o">=</span><span class="n">model_dir</span><span class="p">,</span> <span class="n">cluster</span><span class="o">=</span><span class="n">cluster</span><span class="p">)</span>
+
+            <span class="n">g1</span> <span class="o">=</span> <span class="n">RunModel</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="n">x_i1_1j</span><span class="p">,</span>  <span class="n">model_script</span><span class="o">=</span><span class="n">model_script</span><span class="p">,</span>
+                          <span class="n">model_object_name</span><span class="o">=</span><span class="n">model_object_name</span><span class="p">,</span>
+                          <span class="n">input_template</span><span class="o">=</span><span class="n">input_template</span><span class="p">,</span> <span class="n">var_names</span><span class="o">=</span><span class="n">var_names</span><span class="p">,</span> <span class="n">output_script</span><span class="o">=</span><span class="n">output_script</span><span class="p">,</span>
+                          <span class="n">output_object_name</span><span class="o">=</span><span class="n">output_object_name</span><span class="p">,</span>
+                          <span class="n">ntasks</span><span class="o">=</span><span class="n">ntasks</span><span class="p">,</span> <span class="n">cores_per_task</span><span class="o">=</span><span class="n">cores_per_task</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="n">resume</span><span class="p">,</span>
+                          <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">model_dir</span><span class="o">=</span><span class="n">model_dir</span><span class="p">,</span> <span class="n">cluster</span><span class="o">=</span><span class="n">cluster</span><span class="p">)</span>
+
+            <span class="n">g2</span> <span class="o">=</span> <span class="n">RunModel</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="n">x_1i_j1</span><span class="p">,</span>  <span class="n">model_script</span><span class="o">=</span><span class="n">model_script</span><span class="p">,</span>
+                          <span class="n">model_object_name</span><span class="o">=</span><span class="n">model_object_name</span><span class="p">,</span>
+                          <span class="n">input_template</span><span class="o">=</span><span class="n">input_template</span><span class="p">,</span> <span class="n">var_names</span><span class="o">=</span><span class="n">var_names</span><span class="p">,</span> <span class="n">output_script</span><span class="o">=</span><span class="n">output_script</span><span class="p">,</span>
+                          <span class="n">output_object_name</span><span class="o">=</span><span class="n">output_object_name</span><span class="p">,</span>
+                          <span class="n">ntasks</span><span class="o">=</span><span class="n">ntasks</span><span class="p">,</span> <span class="n">cores_per_task</span><span class="o">=</span><span class="n">cores_per_task</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="n">resume</span><span class="p">,</span>
+                          <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">model_dir</span><span class="o">=</span><span class="n">model_dir</span><span class="p">,</span> <span class="n">cluster</span><span class="o">=</span><span class="n">cluster</span><span class="p">)</span>
+
+            <span class="n">g3</span> <span class="o">=</span> <span class="n">RunModel</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="n">x_1i_1j</span><span class="p">,</span>  <span class="n">model_script</span><span class="o">=</span><span class="n">model_script</span><span class="p">,</span>
+                          <span class="n">model_object_name</span><span class="o">=</span><span class="n">model_object_name</span><span class="p">,</span>
+                          <span class="n">input_template</span><span class="o">=</span><span class="n">input_template</span><span class="p">,</span> <span class="n">var_names</span><span class="o">=</span><span class="n">var_names</span><span class="p">,</span> <span class="n">output_script</span><span class="o">=</span><span class="n">output_script</span><span class="p">,</span>
+                          <span class="n">output_object_name</span><span class="o">=</span><span class="n">output_object_name</span><span class="p">,</span>
+                          <span class="n">ntasks</span><span class="o">=</span><span class="n">ntasks</span><span class="p">,</span> <span class="n">cores_per_task</span><span class="o">=</span><span class="n">cores_per_task</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span> <span class="n">resume</span><span class="o">=</span><span class="n">resume</span><span class="p">,</span>
+                          <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">model_dir</span><span class="o">=</span><span class="n">model_dir</span><span class="p">,</span> <span class="n">cluster</span><span class="o">=</span><span class="n">cluster</span><span class="p">)</span>
+
+            <span class="n">d2u_dij</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">g0</span><span class="o">.</span><span class="n">qoi_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">g1</span><span class="o">.</span><span class="n">qoi_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">g2</span><span class="o">.</span><span class="n">qoi_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">g3</span><span class="o">.</span><span class="n">qoi_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                           <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">*</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]))</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">d2u_dij</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="eval_hessian"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.eval_hessian">[docs]</a><span class="k">def</span> <span class="nf">eval_hessian</span><span class="p">(</span><span class="n">dimension</span><span class="p">,</span> <span class="n">mixed_der</span><span class="p">,</span> <span class="n">der</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the hessian matrix with finite differences</span>
+<span class="sd">    Parameters:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">hessian</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">der</span><span class="p">)</span>
+    <span class="kn">import</span> <span class="nn">itertools</span>
+    <span class="n">range_</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">dimension</span><span class="p">))</span>
+    <span class="n">add_</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">range_</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="n">hessian</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">mixed_der</span><span class="p">[</span><span class="n">add_</span><span class="p">]</span>
+        <span class="n">hessian</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">hessian</span><span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="n">add_</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">hessian</span></div>
+
+<div class="viewcode-block" id="diagnostics"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.diagnostics">[docs]</a><span class="k">def</span> <span class="nf">diagnostics</span><span class="p">(</span><span class="n">sampling_method</span><span class="p">,</span> <span class="n">sampling_outputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">figsize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eps_ESS</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">alpha_ESS</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">         Description: A function to estimate the gradients (1st, 2nd, mixed) of a function using finite differences</span>
+
+
+<span class="sd">         Input:</span>
+<span class="sd">             :param sampling_method: sampling method used to generate samples</span>
+<span class="sd">             :type sampling_method: str, &#39;MCMC&#39; or &#39;IS&#39;</span>
+
+<span class="sd">             :param sampling_outputs: output object of a sampling method</span>
+<span class="sd">             :type sampling_outputs: object of class MCMC or IS</span>
+
+<span class="sd">             :param samples: output samples of a sampling method (alternative to giving sampling_outputs for MCMC)</span>
+<span class="sd">             :type samples: ndarray</span>
+
+<span class="sd">             :param weights: output weights of IS (alternative to giving sampling_outputs for IS)</span>
+<span class="sd">             :type weights: ndarray</span>
+
+<span class="sd">             :param figsize: size of the figure for output plots</span>
+<span class="sd">             :type figsize: tuple (width, height)</span>
+
+<span class="sd">             :param eps_ESS: small number required to compute ESS when sampling_method=&#39;MCMC&#39;, see documentation</span>
+<span class="sd">             :type eps_ESS: float in [0,1]</span>
+
+<span class="sd">             :param alpha_ESS: small number required to compute ESS when sampling_method=&#39;MCMC&#39;, see documentation</span>
+<span class="sd">             :type alpha_ESS: float in [0,1]</span>
+
+<span class="sd">         Output:</span>
+<span class="sd">             returns various diagnostics values/plots to evaluate importance sampling and MCMC sampling outputs</span>
+<span class="sd">     &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">eps_ESS</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">eps_ESS</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;UQpy error: eps_ESS should be a float between 0 and 1.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">alpha_ESS</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">alpha_ESS</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;UQpy error: alpha_ESS should be a float between 0 and 1.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">sampling_method</span> <span class="o">==</span> <span class="s1">&#39;IS&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">sampling_outputs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;UQpy error: sampling_outputs or weights should be provided&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sampling_outputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">sampling_outputs</span><span class="o">.</span><span class="n">weights</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Diagnostics for Importance Sampling </span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">effective_sample_size</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Effective sample size is ne=</span><span class="si">{}</span><span class="s1">, out of a total number of samples=</span><span class="si">{}</span><span class="s1"> </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span>
+              <span class="nb">format</span><span class="p">(</span><span class="n">effective_sample_size</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">weights</span><span class="p">)))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;max_weight = </span><span class="si">{}</span><span class="s1">, min_weight = </span><span class="si">{}</span><span class="s1"> </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">weights</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">weights</span><span class="p">)))</span>
+
+        <span class="c1"># Output plots</span>
+        <span class="k">if</span> <span class="n">figsize</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">figsize</span> <span class="o">=</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">weights</span><span class="p">),</span> <span class="p">)),</span> <span class="n">s</span><span class="o">=</span><span class="n">weights</span><span class="o">*</span><span class="mi">300</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Normalized weights out of importance sampling&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">sampling_method</span> <span class="o">==</span> <span class="s1">&#39;MCMC&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">sampling_outputs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">samples</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;UQpy error: sampling_outputs or samples should be provided&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sampling_outputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">samples</span> <span class="o">=</span> <span class="n">sampling_outputs</span><span class="o">.</span><span class="n">samples</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Diagnostics for MCMC </span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">nsamples</span><span class="p">,</span> <span class="n">nparams</span> <span class="o">=</span> <span class="n">samples</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># Acceptance ratio</span>
+        <span class="k">if</span> <span class="n">sampling_outputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Acceptance ratio of the chain = </span><span class="si">{}</span><span class="s1">. </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sampling_outputs</span><span class="o">.</span><span class="n">accept_ratio</span><span class="p">))</span>
+
+        <span class="c1"># Computation of ESS and min ESS</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="n">eps_ESS</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha_ESS</span>
+
+        <span class="n">bn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">nsamples</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">2</span><span class="p">))</span> <span class="c1"># nb of samples per bin</span>
+        <span class="n">an</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">nsamples</span><span class="o">/</span><span class="n">bn</span><span class="p">))</span> <span class="c1"># nb of bins, for computation of</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array_split</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nsamples</span><span class="p">),</span> <span class="n">an</span><span class="p">)</span>
+
+        <span class="n">means_subdivisions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">an</span><span class="p">,</span> <span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">idx_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">idx</span><span class="p">):</span>
+            <span class="n">x_sub</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="n">idx_i</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">means_subdivisions</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x_sub</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">Omega</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">samples</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">Sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">means_subdivisions</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">joint_ESS</span> <span class="o">=</span> <span class="n">nsamples</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">Omega</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">nparams</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">Sigma</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">nparams</span><span class="p">)</span>
+        <span class="n">chi2_value</span> <span class="o">=</span> <span class="n">chi2</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">df</span><span class="o">=</span><span class="n">nparams</span><span class="p">)</span>
+        <span class="n">min_joint_ESS</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="n">nparams</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span><span class="n">nparams</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">(</span><span class="n">nparams</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span>
+                    <span class="mi">2</span> <span class="o">/</span> <span class="n">nparams</span><span class="p">)</span> <span class="o">*</span> <span class="n">chi2_value</span> <span class="o">/</span> <span class="n">eps</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">marginal_ESS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nparams</span><span class="p">,</span> <span class="p">))</span>
+        <span class="n">min_marginal_ESS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nparams</span><span class="p">,))</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nparams</span><span class="p">):</span>
+            <span class="n">marginal_ESS</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">nsamples</span> <span class="o">*</span> <span class="n">Omega</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="n">j</span><span class="p">]</span><span class="o">/</span><span class="n">Sigma</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">min_marginal_ESS</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">norm</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="n">alpha</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">eps</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Univariate Effective Sample Size in each dimension:&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nparams</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Parameter # </span><span class="si">{}</span><span class="s1">: ESS = </span><span class="si">{}</span><span class="s1">, minimum ESS recommended = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span>
+                  <span class="nb">format</span><span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">marginal_ESS</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">min_marginal_ESS</span><span class="p">[</span><span class="n">j</span><span class="p">]))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Multivariate Effective Sample Size:&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Multivariate ESS = </span><span class="si">{}</span><span class="s1">, minimum ESS recommended = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">joint_ESS</span><span class="p">,</span> <span class="n">min_joint_ESS</span><span class="p">))</span>
+
+        <span class="c1"># Output plots</span>
+        <span class="k">if</span> <span class="n">figsize</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">figsize</span> <span class="o">=</span> <span class="p">(</span><span class="mi">20</span><span class="p">,</span><span class="mi">4</span><span class="o">*</span><span class="n">nparams</span><span class="p">)</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="n">nparams</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nsamples</span><span class="p">),</span> <span class="n">samples</span><span class="p">[:,</span><span class="n">j</span><span class="p">])</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;chain - parameter # </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nsamples</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">samples</span><span class="p">[:,</span><span class="n">j</span><span class="p">])</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nsamples</span><span class="p">))</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;parameter convergence&#39;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">acorr</span><span class="p">(</span><span class="n">samples</span><span class="p">[:,</span><span class="n">j</span><span class="p">]</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">samples</span><span class="p">[:,</span><span class="n">j</span><span class="p">]),</span> <span class="n">maxlags</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">normed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;correlation between samples&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Supported sampling methods for diagnostics are &quot;MCMC&quot;, &quot;IS&quot;.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span></div>
+
+
+<span class="k">def</span> <span class="nf">resample</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;multinomial&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">nsamples</span> <span class="o">=</span> <span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">nsamples</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;multinomial&#39;</span><span class="p">:</span>
+        <span class="n">multinomial_run</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multinomial</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nsamples</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">multinomial_run</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">idx</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">j</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">multinomial_run</span><span class="p">[</span><span class="n">j</span><span class="p">])])</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">return</span> <span class="n">output</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Exit code: Current available method: multinomial&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="suppress_stdout"><a class="viewcode-back" href="../../utilities_doc.html#UQpy.Utilities.suppress_stdout">[docs]</a><span class="nd">@contextmanager</span>
+<span class="k">def</span> <span class="nf">suppress_stdout</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; A function to suppress output&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">devnull</span><span class="p">:</span>
+        <span class="n">old_stdout</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">devnull</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">yield</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">old_stdout</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../index.html">
+    <img class="logo" src="../../_static/logo.jpg" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">Uncertainty quantification with Python </p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=SURG&repo=UQpy&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation_doc.html">Introduction</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Michael D. Shields.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/SURG/UQpy" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>
